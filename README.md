@@ -4,7 +4,8 @@
 Personal repository to learning the basics of Go.
 
 ## Projects
-- Game of Life: Reproducing John Conway's Game of Life in a tiny cli application.
+- **Game of Life**: Reproducing John Conway's Game of Life in a tiny cli application.
+- **Movie Theater Web Scraper**: Go-based scraper that aggregates data on all movies currently showing in my town's theaters.
 
 ### Work in Progress
-- URL Shortener: Creating a API for creating short links, using Gin.
+- **URL Shortener**: Creating a API for creating short links, using Gin.
