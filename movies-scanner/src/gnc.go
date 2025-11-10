@@ -96,7 +96,10 @@ func fetchCinemas(c *colly.Collector, cinemas []Cinema, dates []string) {
 		for _, cine := range cinemas {
 			url := BuildURL(cine.ID, date)
 			fmt.Printf("\n=== %s (%s) ===\n", cine.Title, date)
-			c.Visit(url)
+			err := c.Visit(url)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }

@@ -26,14 +26,14 @@ func getToday() []string {
 	return dates
 }
 
-func getWeek() []string {
-	var dates []string
-	today := time.Now()
+// func getWeek() []string {
+// 	var dates []string
+// 	today := time.Now()
 
-	for i := 0; i < 7; i++ {
-		date := today.AddDate(0, 0, i).Format("2006-01-02")
-		dates = append(dates, date)
-	}
+// 	for i := 0; i < 7; i++ {
+// 		date := today.AddDate(0, 0, i).Format("2006-01-02")
+// 		dates = append(dates, date)
+// 	}
 
-	return dates
-}
+// 	return dates
+// }
