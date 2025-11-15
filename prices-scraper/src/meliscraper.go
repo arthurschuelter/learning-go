@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"sort"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,15 +16,17 @@ var domains = []string{
 	"lista.mercadolivre.com.br",
 }
 
-func ScrapeMercadoLivre(itemList []Item) {
+func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 	baseURL := "https://lista.mercadolivre.com.br/"
+	retailer := "Mercado Livre"
+
 	links := []string{}
 	for _, item := range itemList {
 		url := strings.ReplaceAll(strings.ToLower(item.Title), " ", "-")
 		links = append(links, baseURL+url)
 	}
 
-	fmt.Printf("Scanning Mercado Livre for:\n")
+	fmt.Printf("Scanning %s for:\n", retailer)
 	for _, item := range itemList {
 		fmt.Printf("- %s\n", item.Title)
 	}
@@ -32,6 +36,8 @@ func ScrapeMercadoLivre(itemList []Item) {
 	)
 
 	priceList := []Item{}
+	productList := []Product{}
+	priceHistoryList := []PriceHistory{}
 
 	c.OnHTML("div.ui-search-result__wrapper", func(e *colly.HTMLElement) {
 		title := e.ChildText("h3.poly-component__title-wrapper")
@@ -47,17 +53,38 @@ func ScrapeMercadoLivre(itemList []Item) {
 
 			}
 		})
+		l := e.ChildAttr("h3.poly-component__title-wrapper a.poly-component__title", "href")
+
+		id, err := getProductIDMeli(l)
+		if err != nil {
+			fmt.Printf(" [ERROR] Error extracting id: %v\n", err)
+			fmt.Printf(" [ERROR] %s: %.2f\n", title, price)
+			return
+		}
 
 		item := Item{
 			Title:    title,
 			Currency: "R$",
 			Price:    price,
-			ID:       "",
+			ID:       id,
+			Link:     l,
 		}
+
+		product := Product{
+			IDProduct:   id,
+			ProductName: title,
+			URL:         l,
+			Retailer:    retailer,
+		}
+
 		if validateItem(item, itemList) {
-			// printItem(item)
 			priceList = append(priceList, item)
-			// fmt.Printf("Link: %s\n", link)
+			productList = append(productList, product)
+			priceHistory := createPriceHistory(product, item, db)
+			if priceHistory.ProductID != -1 {
+				insertPriceHistory(db, priceHistory)
+			}
+			priceHistoryList = append(priceHistoryList, priceHistory)
 		}
 	})
 
@@ -65,32 +92,35 @@ func ScrapeMercadoLivre(itemList []Item) {
 		fmt.Printf("Scanning %s\n", itemList[i].Title)
 		c.Visit(link)
 		priceList = sortList(priceList)
-		for _, item := range priceList {
-			printItem(item)
-		}
 		priceList = []Item{}
 	}
 }
 
-func printItem(item Item) {
-	fmt.Printf("  * %s -- %s %.2f\n", item.Title, item.Currency, item.Price)
-}
-
-func validateItem(item Item, compareList []Item) bool {
-	title := strings.ToUpper(item.Title)
-
-	for _, compare := range compareList {
-		if strings.Contains(title, strings.ToUpper(compare.Title)) && item.Price >= compare.MinPrice {
-			return true
-		}
+func getProductIDMeli(rawURL string) (id string, err error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
 	}
 
-	return false
-}
+	query := u.Query()
+	if wid := query.Get("wid"); wid != "" {
+		return wid, nil
+	}
 
-func sortList(priceList []Item) []Item {
-	sort.Slice(priceList, func(i, j int) bool {
-		return priceList[i].Price < priceList[j].Price
-	})
-	return priceList
+	upRegex := regexp.MustCompile(`/up/([A-Z0-9]+)`)
+	if matches := upRegex.FindStringSubmatch(u.Path); len(matches) > 1 {
+		return matches[1], nil
+	}
+
+	pRegex := regexp.MustCompile(`/p/([A-Z0-9]+)`)
+	if matches := pRegex.FindStringSubmatch(u.Path); len(matches) > 1 {
+		return matches[1], nil
+	}
+
+	mlbRegex := regexp.MustCompile(`/MLB-([0-9]+)-`)
+	if matches := mlbRegex.FindStringSubmatch(u.Path); len(matches) > 1 {
+		return "MLB" + matches[1], nil
+	}
+
+	return "", fmt.Errorf("no MLB ID found in URL")
 }
