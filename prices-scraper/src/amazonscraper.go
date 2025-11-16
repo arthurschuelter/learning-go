@@ -38,10 +38,10 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 	priceHistoryList := []PriceHistory{}
 
 	c.OnHTML("div[role='listitem']", func(e *colly.HTMLElement) {
-		title := getTitleAmazon(e)
-		price := getPriceAmazon(e)
-		l := getLinkAmazon(e)
-		id := getProductIDAmazon(l)
+		title := extractTitleAmazon(e)
+		price := extractPriceAmazon(e)
+		l := extractLinkAmazon(e)
+		id := extractProductIDAmazon(l)
 
 		item := Item{
 			Title:    title,
@@ -77,11 +77,11 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 	}
 }
 
-func getTitleAmazon(e *colly.HTMLElement) string {
+func extractTitleAmazon(e *colly.HTMLElement) string {
 	return e.ChildText("div[data-cy='title-recipe'] h2 span")
 }
 
-func getPriceAmazon(e *colly.HTMLElement) float64 {
+func extractPriceAmazon(e *colly.HTMLElement) float64 {
 	var price float64
 
 	var priceWhole = e.ChildText("div[data-cy='price-recipe'] span.a-price-whole")
@@ -99,7 +99,7 @@ func getPriceAmazon(e *colly.HTMLElement) float64 {
 	return price
 }
 
-func getLinkAmazon(e *colly.HTMLElement) string {
+func extractLinkAmazon(e *colly.HTMLElement) string {
 	baseUrl := "https://www.amazon.com.br"
 
 	link := e.ChildAttr("span[data-component-type='s-product-image'] a.a-link-normal", "href")
@@ -114,7 +114,7 @@ func getLinkAmazon(e *colly.HTMLElement) string {
 	return baseUrl + link
 }
 
-func getProductIDAmazon(link string) string {
+func extractProductIDAmazon(link string) string {
 	reID := regexp.MustCompile(`/dp/([A-Z0-9]+)`)
 	productID := ""
 	if match := reID.FindStringSubmatch(link); len(match) > 1 {

@@ -40,22 +40,10 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 	priceHistoryList := []PriceHistory{}
 
 	c.OnHTML("div.ui-search-result__wrapper", func(e *colly.HTMLElement) {
-		title := e.ChildText("h3.poly-component__title-wrapper")
-		var price float64
-		e.ForEach("div.poly-price__current span.andes-money-amount__fraction", func(i int, el *colly.HTMLElement) {
-			if i == 0 {
-				priceStr := strings.ReplaceAll(el.Text, ".", "")
-				var err error
-				price, err = strconv.ParseFloat(priceStr, 64)
-				if err != nil {
-					price = 0
-				}
-
-			}
-		})
-		l := e.ChildAttr("h3.poly-component__title-wrapper a.poly-component__title", "href")
-
-		id, err := getProductIDMeli(l)
+		title := extractTitleMeli(e)
+		price := extractPriceMeli(e)
+		l := extractLinkMeli(e)
+		id, err := extractProductIDMeli(l)
 		if err != nil {
 			fmt.Printf(" [ERROR] Error extracting id: %v\n", err)
 			fmt.Printf(" [ERROR] %s: %.2f\n", title, price)
@@ -96,7 +84,31 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 	}
 }
 
-func getProductIDMeli(rawURL string) (id string, err error) {
+func extractTitleMeli(e *colly.HTMLElement) string {
+	return e.ChildText("h3.poly-component__title-wrapper")
+}
+
+func extractPriceMeli(e *colly.HTMLElement) float64 {
+	var price float64
+	e.ForEach("div.poly-price__current span.andes-money-amount__fraction", func(i int, el *colly.HTMLElement) {
+		if i == 0 {
+			priceStr := strings.ReplaceAll(el.Text, ".", "")
+			var err error
+			price, err = strconv.ParseFloat(priceStr, 64)
+			if err != nil {
+				price = 0
+			}
+
+		}
+	})
+	return price
+}
+
+func extractLinkMeli(e *colly.HTMLElement) string {
+	return e.ChildAttr("h3.poly-component__title-wrapper a.poly-component__title", "href")
+}
+
+func extractProductIDMeli(rawURL string) (id string, err error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
