@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -132,6 +133,12 @@ func insertProduct(db *sql.DB, product Product) (int, error) {
 }
 
 func insertPriceHistory(db *sql.DB, ph PriceHistory) (int, error) {
+	if !canInsertPriceHistory(db, ph) {
+		err := errors.New("duplicate entry: this item has already been inserted today")
+		fmt.Printf("[ERROR] %v\n", err)
+		return 0, err
+	}
+
 	sqlQuery := `
 		INSERT INTO price_history (product_id, price, currency, price_date)
 		VALUES ($1, $2, $3, $4)
@@ -147,13 +154,34 @@ func insertPriceHistory(db *sql.DB, ph PriceHistory) (int, error) {
 	).Scan(&id)
 
 	if err != nil {
-		fmt.Printf("[ERROR] inserting price_history: %v\n", err)
+		fmt.Printf("[ERROR] %v\n", err)
 		return 0, err
 	}
 
 	fmt.Printf("Successfully inserted price_history with ID: %d\n", id)
 	return id, nil
 
+}
+func canInsertPriceHistory(db *sql.DB, ph PriceHistory) bool {
+	sqlQuery := `
+		select ph.id
+		from price_history ph 
+		where 1=1
+			and ph.product_id = $1
+			and ph.price_date = CURRENT_DATE
+		`
+
+	var id int
+	err := db.QueryRow(
+		sqlQuery,
+		ph.ProductID,
+	).Scan(&id)
+
+	if err != nil {
+		id = 0
+	}
+
+	return id == 0
 }
 
 func validateItem(item Item, compareList []Item) bool {
