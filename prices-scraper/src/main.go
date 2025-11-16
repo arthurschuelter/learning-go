@@ -63,7 +63,10 @@ func main() {
 
 	ScrapeMercadoLivre(items, db)
 	ScrapeAmazon(items, db)
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		LogErr(err)
+	}()
 }
 
 func connectDB() *sql.DB {
@@ -86,9 +89,9 @@ func connectDB() *sql.DB {
 func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
 	sqlQuery := "SELECT * FROM products WHERE id_product = $1"
 	rows, err := db.Query(sqlQuery, id_product)
-	if err != nil {
-		panic(err)
-	}
+	CheckErr(err)
+
+	var id int
 	for rows.Next() {
 		var product Product
 		err := rows.Scan(
@@ -102,9 +105,9 @@ func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
 		if err != nil {
 			return -1, err
 		}
-		return product.ID, nil
+		id = product.ID
 	}
-	return -1, nil
+	return id, nil
 }
 
 func insertProduct(db *sql.DB, product Product) (int, error) {
@@ -162,6 +165,7 @@ func insertPriceHistory(db *sql.DB, ph PriceHistory) (int, error) {
 	return id, nil
 
 }
+
 func canInsertPriceHistory(db *sql.DB, ph PriceHistory) bool {
 	sqlQuery := `
 		select ph.id
@@ -230,14 +234,15 @@ func urlDecode(s string) string {
 	return decoded
 }
 
-func printItem(item Item) {
-	fmt.Printf("  * %s -- %s %.2f\n", item.Title, item.Currency, item.Price)
-	fmt.Printf("    Id: %s\n", item.ID)
-}
-
 func CheckErr(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func LogErr(err error) {
+	if err != nil {
+		fmt.Printf("[ERROR] %s\n", err)
 	}
 }
 

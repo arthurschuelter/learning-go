@@ -70,7 +70,8 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 			productList = append(productList, product)
 			priceHistory := createPriceHistory(product, item, db)
 			if priceHistory.ProductID != -1 {
-				insertPriceHistory(db, priceHistory)
+				_, err := insertPriceHistory(db, priceHistory)
+				LogErr(err)
 			}
 			priceHistoryList = append(priceHistoryList, priceHistory)
 		}
@@ -78,7 +79,8 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 
 	for i, link := range links {
 		fmt.Printf("Scanning %s\n", itemList[i].Title)
-		c.Visit(link)
+		err := c.Visit(link)
+		LogErr(err)
 		priceList = sortList(priceList)
 		priceList = []Item{}
 	}
