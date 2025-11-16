@@ -1,26 +1,24 @@
 package scrapers
 
 import (
-	"database/sql"
 	"fmt"
 	"items-scraper/src/models"
 	"items-scraper/src/repository"
-	"items-scraper/src/utils"
 	"sync"
 )
 
-func ScapeAll(items []models.Item, db *sql.DB) {
+func ScapeAll(items []models.Item, repository *repository.ProductRepository) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		ScrapeMercadoLivre(items, db)
+		ScrapeMercadoLivre(items, repository)
 	}()
 
 	go func() {
 		defer wg.Done()
-		ScrapeAmazon(items, db)
+		ScrapeAmazon(items, repository)
 	}()
 
 	wg.Wait()
@@ -28,29 +26,32 @@ func ScapeAll(items []models.Item, db *sql.DB) {
 
 }
 
-// TODO: Refactor this
-func InsertProductPrice(item models.Item, product models.Product, productRepo *repository.ProductRepository) {
-	priceHistory := CreatePriceHistory(product, item, productRepo)
-	if priceHistory.ProductID != -1 {
-		_, err := productRepo.InsertPriceHistory(priceHistory)
-		utils.LogErr(err)
-	}
-}
-
-// TODO: Refactor this
-func CreatePriceHistory(p models.Product, item models.Item, repository *repository.ProductRepository) models.PriceHistory {
-	id, err := repository.FindByIDProduct(p.IDProduct)
-	utils.CheckErr(err)
-
-	if repository.CanInsertProduct(p, id) {
-		id, err = repository.InsertProduct(p)
-		utils.CheckErr(err)
+func SaveProductPrice(item models.Item, product models.Product, repo *repository.ProductRepository) error {
+	// Find product
+	productID, err := repo.FindByIDProduct(product.IDProduct)
+	if err != nil {
+		return fmt.Errorf("error finding product: %w", err)
 	}
 
+	// Product doesn't exist, create it
+	if productID == -1 {
+		productID, err = repo.InsertProduct(product)
+		if err != nil {
+			return fmt.Errorf("error inserting product: %w", err)
+		}
+	}
+
+	// Insert price history
 	priceHistory := models.PriceHistory{
-		ProductID: id,
+		ProductID: productID,
 		Price:     item.Price,
 		Currency:  item.Currency,
 	}
-	return priceHistory
+
+	_, err = repo.InsertPriceHistory(priceHistory)
+	if err != nil {
+		return fmt.Errorf("error inserting price history: %w", err)
+	}
+
+	return nil
 }

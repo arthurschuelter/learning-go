@@ -1,7 +1,6 @@
 package scrapers
 
 import (
-	"database/sql"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -18,10 +17,9 @@ var amazonDomains = []string{
 	"www.amazon.com.br",
 }
 
-func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
+func ScrapeAmazon(itemList []models.Item, repository *repository.ProductRepository) {
 	baseURL := "https://www.amazon.com.br/s?k="
 	retailer := "Amazon"
-	productRepo := repository.NewProductRepository(db)
 
 	links := []string{}
 	for _, item := range itemList {
@@ -37,10 +35,6 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 	c := colly.NewCollector(
 		colly.AllowedDomains(amazonDomains...),
 	)
-
-	// priceList := []models.Item{}
-	// productList := []models.Product{}
-	// priceHistoryList := []models.PriceHistory{}
 
 	c.OnHTML("div[role='listitem']", func(e *colly.HTMLElement) {
 		title := extractTitleAmazon(e)
@@ -64,7 +58,8 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 		}
 
 		if utils.ValidateItem(item, itemList) {
-			InsertProductPrice(item, product, productRepo)
+			err := SaveProductPrice(item, product, repository)
+			utils.LogErr(err)
 		}
 	})
 
@@ -72,7 +67,6 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 		fmt.Printf("Scanning %s\n%s\n", itemList[i].Title, link)
 		err := c.Visit(link)
 		utils.LogErr(err)
-		// priceList = []models.Item{}
 	}
 }
 

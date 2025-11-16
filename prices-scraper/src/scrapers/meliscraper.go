@@ -1,7 +1,6 @@
 package scrapers
 
 import (
-	"database/sql"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -20,11 +19,9 @@ var domains = []string{
 	"lista.mercadolivre.com.br",
 }
 
-func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
+func ScrapeMercadoLivre(itemList []models.Item, repository *repository.ProductRepository) {
 	baseURL := "https://lista.mercadolivre.com.br/"
 	retailer := "Mercado Livre"
-
-	productRepo := repository.NewProductRepository(db)
 
 	links := []string{}
 	for _, item := range itemList {
@@ -40,8 +37,6 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 	c := colly.NewCollector(
 		colly.AllowedDomains(domains...),
 	)
-
-	// priceList := []models.Item{}
 
 	c.OnHTML("div.ui-search-result__wrapper", func(e *colly.HTMLElement) {
 		title := extractTitleMeli(e)
@@ -70,7 +65,8 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 		}
 
 		if utils.ValidateItem(item, itemList) {
-			InsertProductPrice(item, product, productRepo)
+			err := SaveProductPrice(item, product, repository)
+			utils.LogErr(err)
 		}
 	})
 
@@ -78,8 +74,6 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 		fmt.Printf("Scanning %s\n", itemList[i].Title)
 		err := c.Visit(link)
 		utils.LogErr(err)
-		// priceList = utils.SortList(priceList)
-		// priceList = []models.Item{}
 	}
 }
 

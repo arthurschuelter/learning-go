@@ -29,7 +29,7 @@ func ValidateItem(item models.Item, compareList []models.Item) bool {
 	title = strings.ReplaceAll(title, "™", "")
 
 	for _, compare := range compareList {
-		if strings.Contains(title, strings.ToUpper(compare.Title)) && item.Price >= compare.MinPrice && item.Price <= compare.MaxPrice {
+		if strings.Contains(title, strings.ToUpper(compare.Title)) && item.Price >= compare.MinPrice && item.Price <= compare.MaxPrice && item.ID != "" {
 			return true
 		}
 	}
