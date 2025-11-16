@@ -5,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"items-scraper/src/models"
+	"items-scraper/src/utils"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -40,7 +39,7 @@ func main() {
 
 	defer func() {
 		err := db.Close()
-		LogErr(err)
+		utils.LogErr(err)
 	}()
 }
 
@@ -98,7 +97,7 @@ func scapeAll(items []models.Item, db *sql.DB) {
 func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
 	sqlQuery := "SELECT * FROM products WHERE id_product = $1"
 	rows, err := db.Query(sqlQuery, id_product)
-	CheckErr(err)
+	utils.CheckErr(err)
 
 	var id int
 	for rows.Next() {
@@ -213,11 +212,11 @@ func validateItem(item models.Item, compareList []models.Item) bool {
 func createPriceHistory(p models.Product, item models.Item, db *sql.DB) models.PriceHistory {
 	// id := find id in db
 	id, err := findProductByIdProduct(db, p.IDProduct)
-	CheckErr(err)
+	utils.CheckErr(err)
 
 	if id == -1 {
 		id, err = insertProduct(db, p)
-		CheckErr(err)
+		utils.CheckErr(err)
 	}
 
 	priceHistory := models.PriceHistory{
@@ -249,29 +248,14 @@ func getEnvAsInt(key string, defaultValue int) int {
 	return value
 }
 
-func CheckErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+// func CheckErr(err error) {
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
 
-func LogErr(err error) {
-	if err != nil {
-		fmt.Printf("[ERROR] %s\n", err)
-	}
-}
-
-func sortList(priceList []models.Item) []models.Item {
-	sort.Slice(priceList, func(i, j int) bool {
-		return priceList[i].Price < priceList[j].Price
-	})
-	return priceList
-}
-
-func urlDecode(s string) string {
-	decoded, err := url.QueryUnescape(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return decoded
-}
+// func LogErr(err error) {
+// 	if err != nil {
+// 		fmt.Printf("[ERROR] %s\n", err)
+// 	}
+// }

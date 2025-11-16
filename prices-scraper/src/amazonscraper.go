@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"items-scraper/src/models"
+	"items-scraper/src/utils"
 
 	"github.com/gocolly/colly"
 )
@@ -66,7 +67,7 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 			priceHistory := createPriceHistory(product, item, db)
 			if priceHistory.ProductID != -1 {
 				_, err := insertPriceHistory(db, priceHistory)
-				LogErr(err)
+				utils.LogErr(err)
 			}
 			priceHistoryList = append(priceHistoryList, priceHistory)
 		}
@@ -75,8 +76,8 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 	for i, link := range links {
 		fmt.Printf("Scanning %s\n%s\n", itemList[i].Title, link)
 		err := c.Visit(link)
-		LogErr(err)
-		priceList = sortList(priceList)
+		utils.LogErr(err)
+		priceList = utils.SortList(priceList)
 		priceList = []models.Item{}
 	}
 }
@@ -107,7 +108,7 @@ func extractLinkAmazon(e *colly.HTMLElement) string {
 	baseUrl := "https://www.amazon.com.br"
 
 	link := e.ChildAttr("span[data-component-type='s-product-image'] a.a-link-normal", "href")
-	link = urlDecode(link)
+	link = utils.UrlDecode(link)
 
 	reURL := regexp.MustCompile(`^([^?]+?)(?:/ref=|$|\?)`)
 	if match := reURL.FindStringSubmatch(link); len(match) > 1 {
