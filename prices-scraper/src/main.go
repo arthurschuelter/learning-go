@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -53,7 +54,7 @@ var (
 )
 
 func main() {
-	loadEnvironment()
+	setupDatabase()
 	db := connectDB()
 
 	items := []Item{
@@ -61,12 +62,27 @@ func main() {
 		{ID: "2", Title: "Steam Deck", MinPrice: 2200, MaxPrice: 9999},
 	}
 
-	ScrapeMercadoLivre(items, db)
-	ScrapeAmazon(items, db)
+	scapeAll(items, db)
+
 	defer func() {
 		err := db.Close()
 		LogErr(err)
 	}()
+}
+
+func setupDatabase() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("[ERROR]: .env file not found, using environment variables or defaults")
+		log.Println(err)
+		panic(err)
+	}
+
+	host = getEnv("DB_HOST")
+	port = getEnvAsInt("DB_PORT", 5432)
+	user = getEnv("DB_USER")
+	password = getEnv("DB_PASSWORD")
+	dbname = getEnv("DB_NAME")
 }
 
 func connectDB() *sql.DB {
@@ -84,6 +100,25 @@ func connectDB() *sql.DB {
 
 	fmt.Println("Successfully connected!")
 	return db
+}
+
+func scapeAll(items []Item, db *sql.DB) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		ScrapeMercadoLivre(items, db)
+	}()
+
+	go func() {
+		defer wg.Done()
+		ScrapeAmazon(items, db)
+	}()
+
+	wg.Wait()
+	fmt.Println("✓ All scrapers completed!")
+
 }
 
 func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
@@ -219,46 +254,6 @@ func createPriceHistory(p Product, item Item, db *sql.DB) PriceHistory {
 	return priceHistory
 }
 
-func sortList(priceList []Item) []Item {
-	sort.Slice(priceList, func(i, j int) bool {
-		return priceList[i].Price < priceList[j].Price
-	})
-	return priceList
-}
-
-func urlDecode(s string) string {
-	decoded, err := url.QueryUnescape(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return decoded
-}
-
-func CheckErr(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func LogErr(err error) {
-	if err != nil {
-		fmt.Printf("[ERROR] %s\n", err)
-	}
-}
-
-func loadEnvironment() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Println("Warning: .env file not found, using environment variables or defaults")
-	}
-
-	host = getEnv("DB_HOST")
-	port = getEnvAsInt("DB_PORT", 5432)
-	user = getEnv("DB_USER")
-	password = getEnv("DB_PASSWORD")
-	dbname = getEnv("DB_NAME")
-}
-
 func getEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -278,4 +273,31 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return value
+}
+
+func CheckErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func LogErr(err error) {
+	if err != nil {
+		fmt.Printf("[ERROR] %s\n", err)
+	}
+}
+
+func sortList(priceList []Item) []Item {
+	sort.Slice(priceList, func(i, j int) bool {
+		return priceList[i].Price < priceList[j].Price
+	})
+	return priceList
+}
+
+func urlDecode(s string) string {
+	decoded, err := url.QueryUnescape(s)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return decoded
 }

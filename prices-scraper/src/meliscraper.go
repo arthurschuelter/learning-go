@@ -45,8 +45,8 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 		l := extractLinkMeli(e)
 		id, err := extractProductIDMeli(l)
 		if err != nil {
-			fmt.Printf(" [ERROR] Error extracting id: %v\n", err)
-			fmt.Printf(" [ERROR] %s: %.2f\n", title, price)
+			fmt.Printf("[ERROR] Error extracting id: %v\n", err)
+			fmt.Printf("[ERROR] %s: %.2f\n", title, price)
 			return
 		}
 
