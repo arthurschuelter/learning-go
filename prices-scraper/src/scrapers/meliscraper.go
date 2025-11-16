@@ -1,4 +1,4 @@
-package main
+package scrapers
 
 import (
 	"database/sql"
@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"items-scraper/src/models"
+	"items-scraper/src/repository"
 	"items-scraper/src/utils"
 
 	"github.com/gocolly/colly"
@@ -22,6 +23,8 @@ var domains = []string{
 func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 	baseURL := "https://lista.mercadolivre.com.br/"
 	retailer := "Mercado Livre"
+
+	productRepo := repository.NewProductRepository(db)
 
 	links := []string{}
 	for _, item := range itemList {
@@ -38,9 +41,7 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 		colly.AllowedDomains(domains...),
 	)
 
-	priceList := []models.Item{}
-	productList := []models.Product{}
-	priceHistoryList := []models.PriceHistory{}
+	// priceList := []models.Item{}
 
 	c.OnHTML("div.ui-search-result__wrapper", func(e *colly.HTMLElement) {
 		title := extractTitleMeli(e)
@@ -68,15 +69,8 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 			Retailer:    retailer,
 		}
 
-		if validateItem(item, itemList) {
-			priceList = append(priceList, item)
-			productList = append(productList, product)
-			priceHistory := createPriceHistory(product, item, db)
-			if priceHistory.ProductID != -1 {
-				_, err := insertPriceHistory(db, priceHistory)
-				utils.LogErr(err)
-			}
-			priceHistoryList = append(priceHistoryList, priceHistory)
+		if utils.ValidateItem(item, itemList) {
+			InsertProductPrice(item, product, productRepo)
 		}
 	})
 
@@ -84,8 +78,8 @@ func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 		fmt.Printf("Scanning %s\n", itemList[i].Title)
 		err := c.Visit(link)
 		utils.LogErr(err)
-		priceList = utils.SortList(priceList)
-		priceList = []models.Item{}
+		// priceList = utils.SortList(priceList)
+		// priceList = []models.Item{}
 	}
 }
 

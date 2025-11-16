@@ -1,4 +1,4 @@
-package main
+package scrapers
 
 import (
 	"database/sql"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"items-scraper/src/models"
+	"items-scraper/src/repository"
 	"items-scraper/src/utils"
 
 	"github.com/gocolly/colly"
@@ -20,6 +21,7 @@ var amazonDomains = []string{
 func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 	baseURL := "https://www.amazon.com.br/s?k="
 	retailer := "Amazon"
+	productRepo := repository.NewProductRepository(db)
 
 	links := []string{}
 	for _, item := range itemList {
@@ -36,9 +38,9 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 		colly.AllowedDomains(amazonDomains...),
 	)
 
-	priceList := []models.Item{}
-	productList := []models.Product{}
-	priceHistoryList := []models.PriceHistory{}
+	// priceList := []models.Item{}
+	// productList := []models.Product{}
+	// priceHistoryList := []models.PriceHistory{}
 
 	c.OnHTML("div[role='listitem']", func(e *colly.HTMLElement) {
 		title := extractTitleAmazon(e)
@@ -61,15 +63,8 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 			Retailer:    retailer,
 		}
 
-		if validateItem(item, itemList) {
-			priceList = append(priceList, item)
-			productList = append(productList, product)
-			priceHistory := createPriceHistory(product, item, db)
-			if priceHistory.ProductID != -1 {
-				_, err := insertPriceHistory(db, priceHistory)
-				utils.LogErr(err)
-			}
-			priceHistoryList = append(priceHistoryList, priceHistory)
+		if utils.ValidateItem(item, itemList) {
+			InsertProductPrice(item, product, productRepo)
 		}
 	})
 
@@ -77,8 +72,7 @@ func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 		fmt.Printf("Scanning %s\n%s\n", itemList[i].Title, link)
 		err := c.Visit(link)
 		utils.LogErr(err)
-		priceList = utils.SortList(priceList)
-		priceList = []models.Item{}
+		// priceList = []models.Item{}
 	}
 }
 
