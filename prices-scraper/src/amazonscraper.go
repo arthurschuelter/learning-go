@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"items-scraper/src/models"
+
 	"github.com/gocolly/colly"
 )
 
@@ -14,7 +16,7 @@ var amazonDomains = []string{
 	"www.amazon.com.br",
 }
 
-func ScrapeAmazon(itemList []Item, db *sql.DB) {
+func ScrapeAmazon(itemList []models.Item, db *sql.DB) {
 	baseURL := "https://www.amazon.com.br/s?k="
 	retailer := "Amazon"
 
@@ -33,9 +35,9 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 		colly.AllowedDomains(amazonDomains...),
 	)
 
-	priceList := []Item{}
-	productList := []Product{}
-	priceHistoryList := []PriceHistory{}
+	priceList := []models.Item{}
+	productList := []models.Product{}
+	priceHistoryList := []models.PriceHistory{}
 
 	c.OnHTML("div[role='listitem']", func(e *colly.HTMLElement) {
 		title := extractTitleAmazon(e)
@@ -43,7 +45,7 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 		l := extractLinkAmazon(e)
 		id := extractProductIDAmazon(l)
 
-		item := Item{
+		item := models.Item{
 			Title:    title,
 			Currency: "R$",
 			Price:    price,
@@ -51,7 +53,7 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 			Link:     l,
 		}
 
-		product := Product{
+		product := models.Product{
 			IDProduct:   id,
 			ProductName: title,
 			URL:         l,
@@ -75,7 +77,7 @@ func ScrapeAmazon(itemList []Item, db *sql.DB) {
 		err := c.Visit(link)
 		LogErr(err)
 		priceList = sortList(priceList)
-		priceList = []Item{}
+		priceList = []models.Item{}
 	}
 }
 

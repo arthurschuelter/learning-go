@@ -13,37 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"items-scraper/src/models"
+
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
-
-type Item struct {
-	ID       string
-	Currency string
-	Link     string
-	Price    float64
-	MaxPrice float64
-	MinPrice float64
-	Title    string
-}
-
-type Product struct {
-	ID          int       `db:"id" json:"id"`
-	IDProduct   string    `db:"id_product" json:"id_product"`
-	ProductName string    `db:"product_name" json:"product_name"`
-	URL         string    `db:"url" json:"url"`
-	Retailer    string    `db:"retailer" json:"retailer"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-}
-
-type PriceHistory struct {
-	ID        int       `db:"id" json:"id"`
-	ProductID int       `db:"product_id" json:"product_id"`
-	Price     float64   `db:"price" json:"price"`
-	Currency  string    `db:"currency" json:"currency"`
-	PriceDate time.Time `db:"price_date" json:"price_date"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-}
 
 var (
 	host     string
@@ -57,7 +31,7 @@ func main() {
 	setupDatabase()
 	db := connectDB()
 
-	items := []Item{
+	items := []models.Item{
 		{ID: "1", Title: "Switch 2", MinPrice: 2200, MaxPrice: 9999},
 		{ID: "2", Title: "Steam Deck", MinPrice: 2200, MaxPrice: 9999},
 	}
@@ -102,7 +76,7 @@ func connectDB() *sql.DB {
 	return db
 }
 
-func scapeAll(items []Item, db *sql.DB) {
+func scapeAll(items []models.Item, db *sql.DB) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -128,7 +102,7 @@ func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
 
 	var id int
 	for rows.Next() {
-		var product Product
+		var product models.Product
 		err := rows.Scan(
 			&product.ID,
 			&product.IDProduct,
@@ -145,7 +119,7 @@ func findProductByIdProduct(db *sql.DB, id_product string) (int, error) {
 	return id, nil
 }
 
-func insertProduct(db *sql.DB, product Product) (int, error) {
+func insertProduct(db *sql.DB, product models.Product) (int, error) {
 	sqlStatement := `
 		INSERT INTO products (id_product, product_name, url, retailer)
 		VALUES ($1, $2, $3, $4)
@@ -170,7 +144,7 @@ func insertProduct(db *sql.DB, product Product) (int, error) {
 	return id, err
 }
 
-func insertPriceHistory(db *sql.DB, ph PriceHistory) (int, error) {
+func insertPriceHistory(db *sql.DB, ph models.PriceHistory) (int, error) {
 	if !canInsertPriceHistory(db, ph) {
 		err := errors.New("duplicate entry: this item has already been inserted today")
 		fmt.Printf("[ERROR] %v\n", err)
@@ -201,7 +175,7 @@ func insertPriceHistory(db *sql.DB, ph PriceHistory) (int, error) {
 
 }
 
-func canInsertPriceHistory(db *sql.DB, ph PriceHistory) bool {
+func canInsertPriceHistory(db *sql.DB, ph models.PriceHistory) bool {
 	sqlQuery := `
 		select ph.id
 		from price_history ph 
@@ -223,7 +197,7 @@ func canInsertPriceHistory(db *sql.DB, ph PriceHistory) bool {
 	return id == 0
 }
 
-func validateItem(item Item, compareList []Item) bool {
+func validateItem(item models.Item, compareList []models.Item) bool {
 	title := strings.ToUpper(item.Title)
 	title = strings.ReplaceAll(title, "™", "")
 
@@ -236,7 +210,7 @@ func validateItem(item Item, compareList []Item) bool {
 	return false
 }
 
-func createPriceHistory(p Product, item Item, db *sql.DB) PriceHistory {
+func createPriceHistory(p models.Product, item models.Item, db *sql.DB) models.PriceHistory {
 	// id := find id in db
 	id, err := findProductByIdProduct(db, p.IDProduct)
 	CheckErr(err)
@@ -246,7 +220,7 @@ func createPriceHistory(p Product, item Item, db *sql.DB) PriceHistory {
 		CheckErr(err)
 	}
 
-	priceHistory := PriceHistory{
+	priceHistory := models.PriceHistory{
 		ProductID: id,
 		Price:     item.Price,
 		Currency:  item.Currency,
@@ -287,7 +261,7 @@ func LogErr(err error) {
 	}
 }
 
-func sortList(priceList []Item) []Item {
+func sortList(priceList []models.Item) []models.Item {
 	sort.Slice(priceList, func(i, j int) bool {
 		return priceList[i].Price < priceList[j].Price
 	})

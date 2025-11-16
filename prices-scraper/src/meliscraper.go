@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"items-scraper/src/models"
+
 	"github.com/gocolly/colly"
 )
 
@@ -16,7 +18,7 @@ var domains = []string{
 	"lista.mercadolivre.com.br",
 }
 
-func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
+func ScrapeMercadoLivre(itemList []models.Item, db *sql.DB) {
 	baseURL := "https://lista.mercadolivre.com.br/"
 	retailer := "Mercado Livre"
 
@@ -35,9 +37,9 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 		colly.AllowedDomains(domains...),
 	)
 
-	priceList := []Item{}
-	productList := []Product{}
-	priceHistoryList := []PriceHistory{}
+	priceList := []models.Item{}
+	productList := []models.Product{}
+	priceHistoryList := []models.PriceHistory{}
 
 	c.OnHTML("div.ui-search-result__wrapper", func(e *colly.HTMLElement) {
 		title := extractTitleMeli(e)
@@ -50,7 +52,7 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 			return
 		}
 
-		item := Item{
+		item := models.Item{
 			Title:    title,
 			Currency: "R$",
 			Price:    price,
@@ -58,7 +60,7 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 			Link:     l,
 		}
 
-		product := Product{
+		product := models.Product{
 			IDProduct:   id,
 			ProductName: title,
 			URL:         l,
@@ -82,7 +84,7 @@ func ScrapeMercadoLivre(itemList []Item, db *sql.DB) {
 		err := c.Visit(link)
 		LogErr(err)
 		priceList = sortList(priceList)
-		priceList = []Item{}
+		priceList = []models.Item{}
 	}
 }
 
