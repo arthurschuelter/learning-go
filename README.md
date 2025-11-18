@@ -8,6 +8,7 @@ Personal repository to learning the basics of Go.
 - **Movie Theater Web Scraper**: Go-based scraper that aggregates data on all movies currently showing in my town's theaters.
 - **Prices Web Scraper**: Go-based scraper that collects product prices from online retail.
 - **Gocat**: Go-based CLI application that mimics the unix cat command.
+- **Gogit**: Go-based CLI application that shows your githubs profile data.
 
 ### Work in Progress
 - **URL Shortener**: Creating a API for creating short links, using Gin.
