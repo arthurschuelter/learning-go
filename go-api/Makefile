@@ -20,7 +20,16 @@ run: build
 	./bin/main
 .PHONY:run
 
+test: fmt
+	go test ./... -v -cover -coverprofile=coverage.out
+.PHONY:test
+
+cover: test
+	go tool cover -html=coverage.out
+.PHONY:cover
+
 clean:
 	rm -rf ./bin
+	rm coverage.out
 	clear
 .PHONY:clean
