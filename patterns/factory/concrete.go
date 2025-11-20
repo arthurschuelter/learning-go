@@ -1,11 +1,11 @@
 package main
 
-type MacOs struct {
+type MacOsComputer struct {
 	Computer
 }
 
 func MakeMacOS() IComputer {
-	return &MacOs{
+	return &MacOsComputer{
 		Computer: Computer{
 			os:    "MacOs",
 			price: 3000,
@@ -13,12 +13,12 @@ func MakeMacOS() IComputer {
 	}
 }
 
-type Windows struct {
+type WindowsComputer struct {
 	Computer
 }
 
 func MakeWindows() IComputer {
-	return &Windows{
+	return &WindowsComputer{
 		Computer: Computer{
 			os:    "Windows",
 			price: 2000,
@@ -26,12 +26,12 @@ func MakeWindows() IComputer {
 	}
 }
 
-type Linux struct {
+type LinuxComputer struct {
 	Computer
 }
 
 func MakeLinux() IComputer {
-	return &Linux{
+	return &LinuxComputer{
 		Computer: Computer{
 			os:    "Linux",
 			price: 1000,
