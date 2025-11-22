@@ -26,7 +26,7 @@ type User struct {
 }
 
 func (ranking *Ranking) PrintRanking(i int) {
-	fmt.Printf("  (%2d) %s: %d (%.2f%%)\n", i+1, ranking.Language, ranking.Total, ranking.Ratio*100)
+	fmt.Printf("  (%2d) %s: %.2f kB (%.2f%%)\n", i+1, ranking.Language, float32(ranking.Total)/1024, ranking.Ratio*100)
 }
 
 func (user *User) PrintData() {
