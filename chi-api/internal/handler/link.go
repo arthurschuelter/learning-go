@@ -4,6 +4,8 @@ import (
 	"chi-api/internal/service"
 	"encoding/json"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type LinksHandler struct {
@@ -27,6 +29,19 @@ func (l *LinksHandler) GetLinks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusFound)
 	json.NewEncoder(w).Encode(links)
+}
+
+func (l *LinksHandler) FindLink(w http.ResponseWriter, r *http.Request) {
+	code := chi.URLParam(r, "code")
+
+	link, err := l.Service.GetURL(code)
+
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	http.Redirect(w, r, link.URL, http.StatusFound)
 }
 
 func (l *LinksHandler) SaveLink(w http.ResponseWriter, r *http.Request) {

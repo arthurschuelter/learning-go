@@ -9,6 +9,7 @@ import (
 
 type LinksRepo interface {
 	FindAll() ([]models.Link, error)
+	FindLink(code string) (models.Link, error)
 	AddLink(url string) (models.Link, error)
 }
 
@@ -50,6 +51,26 @@ func (p PostgresRepo) FindAll() ([]models.Link, error) {
 	}
 
 	return links, nil
+}
+
+func (p PostgresRepo) FindLink(code string) (models.Link, error) {
+	query := `
+		SELECT 
+			url
+		FROM links
+		WHERE 1=1
+			AND hash = $1
+	`
+	var url string
+	err := p.DB.QueryRow(query,
+		code,
+	).Scan(&url)
+
+	if err != nil {
+		return models.Link{}, fmt.Errorf("failed to find link: %w", err)
+	}
+
+	return models.Link{Hash: code, URL: url}, nil
 }
 
 func (p PostgresRepo) AddLink(url string) (models.Link, error) {

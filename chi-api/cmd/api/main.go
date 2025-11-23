@@ -31,13 +31,14 @@ func main() {
 	linksService := service.NewLinkService(linksRepo)
 	linksHandler := handler.NewLinksHandler(linksService)
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello World from Chi v0"))
 	})
 
 	// --- Links Routes ---
-	r.Route("/links", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		r.Get("/", linksHandler.GetLinks)
+		r.Get("/{code}", linksHandler.FindLink)
 		r.Post("/", linksHandler.SaveLink)
 	})
 

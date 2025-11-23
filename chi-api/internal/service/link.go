@@ -9,7 +9,7 @@ import (
 type LinkServicer interface {
 	ListAllLinks() ([]models.Link, error)
 	Save(url string) (models.Link, error)
-	// GetURL(code string) (*models.Link, error)
+	GetURL(code string) (models.Link, error)
 }
 
 type LinkService struct {
@@ -39,5 +39,14 @@ func (ls *LinkService) Save(url string) (models.Link, error) {
 		return models.Link{}, err
 	}
 
+	return link, nil
+}
+
+func (ls *LinkService) GetURL(code string) (models.Link, error) {
+	link, err := ls.Repo.FindLink(code)
+
+	if err != nil {
+		return models.Link{}, err
+	}
 	return link, nil
 }
