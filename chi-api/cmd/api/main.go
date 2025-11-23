@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chi-api/internal/config"
 	"chi-api/internal/handler"
 	"chi-api/internal/repository"
 	"chi-api/internal/service"
@@ -9,15 +10,24 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	_ "github.com/lib/pq"
 )
 
 func main() {
 	PrintBanner()
+	cfg := config.LoadConfig()
+	db, err := cfg.Connect()
+
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
 	// --- Links Module Setup ---
-	linksRepo := repository.NewLinkRepo()
+	linksRepo := repository.NewLinkRepo(db)
 	linksService := service.NewLinkService(linksRepo)
 	linksHandler := handler.NewLinksHandler(linksService)
 
@@ -28,9 +38,11 @@ func main() {
 	// --- Links Routes ---
 	r.Route("/links", func(r chi.Router) {
 		r.Get("/", linksHandler.GetLinks)
+		r.Post("/", linksHandler.SaveLink)
 	})
 
-	http.ListenAndServe(":3000", r)
+	fmt.Println("Chi v0 -- Listening on localhost:" + cfg.ApiPort)
+	http.ListenAndServe(":"+cfg.ApiPort, r)
 }
 
 func PrintBanner() {

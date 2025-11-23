@@ -8,8 +8,8 @@ import (
 
 type LinkServicer interface {
 	ListAllLinks() ([]models.Link, error)
-	// Save(link *models.Link) error
-	// FindByShortCode(code string) (*models.Link, error)
+	Save(url string) (models.Link, error)
+	// GetURL(code string) (*models.Link, error)
 }
 
 type LinkService struct {
@@ -30,4 +30,14 @@ func (ls *LinkService) ListAllLinks() ([]models.Link, error) {
 	}
 
 	return links, nil
+}
+
+func (ls *LinkService) Save(url string) (models.Link, error) {
+	link, err := ls.Repo.AddLink(url)
+
+	if err != nil {
+		return models.Link{}, err
+	}
+
+	return link, nil
 }
