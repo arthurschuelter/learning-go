@@ -5,6 +5,7 @@ Personal repository to learning the basics of Go.
 
 ## Projects
 - **Chi API**: Tiny project that shortens URLs and redirect old ones.
+- **DSA**: Implementing common DSA algorithms
 - **Game of Life**: Reproducing John Conway's Game of Life in a tiny cli application.
 - **Github Info**: CLI app that shows your githubs profile data.
 - **Gocat**: CLI application that mimics the unix cat command.
@@ -15,3 +16,7 @@ Personal repository to learning the basics of Go.
 
 ### Work in Progress
 - **Go API**: Creating a API for creating short links, using Gin.
+
+### Projects Ideas:
+- **Algorithms**: Huffman coding, Graphs, Djikstra
+- **DSA**: DFS, BFS, Binary trees.
