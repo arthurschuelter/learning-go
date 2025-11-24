@@ -4,11 +4,14 @@
 Personal repository to learning the basics of Go.
 
 ## Projects
+- **Chi API**: Tiny project that shortens URLs and redirect old ones.
 - **Game of Life**: Reproducing John Conway's Game of Life in a tiny cli application.
-- **Movie Theater Web Scraper**: Scraper that aggregates data on all movies currently showing in my town's theaters.
-- **Prices Web Scraper**: Scraper that collects product prices from online retail.
+- **Github Info**: CLI app that shows your githubs profile data.
 - **Gocat**: CLI application that mimics the unix cat command.
-- **Gogit**: CLI app that shows your githubs profile data.
+- **Movies Scanner**: Scraper that aggregates data on all movies currently showing in my town's theaters.
+- **Patterns**: Implementing design patterns.
+- **Prices Web Scraper**: Scraper that collects product prices from online retail.
+- **Rabbit**: Testing rabbitmq, developed a producer and a consumer.
 
 ### Work in Progress
-- **URL Shortener**: Creating a API for creating short links, using Gin.
+- **Go API**: Creating a API for creating short links, using Gin.
