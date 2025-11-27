@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 )
 
 type Gene struct {
-	gene     []int
-	geneSize int
-	fitness  float32
+	gene         []int
+	geneSize     int
+	fitness      float32
+	mutationRate float32
 }
 
 type Population struct {
@@ -45,18 +47,28 @@ func main() {
 	fmt.Println("Genetic Algorithm")
 	var geneSize int = 6
 	var populationSize int = 20
+	var generations int = 20
 
 	typeChart := MakeTypeMatchup()
-	population := MakePopulation(populationSize, geneSize)
+	p := MakePopulation(populationSize, geneSize)
 
-	for i := range population.population {
-		gene := &population.population[i]
-		gene.fitness = Fitness(*gene, typeChart)
-		// gene.Print()
-		// fmt.Println(" ->", gene.fitness)
+	for j := range generations {
+		fmt.Printf(" === Generation %d === \n", j)
+
+		for i := range p.population {
+			gene := &p.population[i]
+			gene.fitness = Fitness(*gene, typeChart)
+		}
+
+		p.Print()
+		for i := range p.population {
+			gene := &p.population[i]
+			gene.Mutate()
+		}
+		p.population = MakeNewGeneration(p, typeChart)
+		// p.population = SortList(p.population)
 	}
 
-	population.Print()
 }
 
 func Fitness(g Gene, t TypeMatchup) float32 {
@@ -99,6 +111,41 @@ func Fitness(g Gene, t TypeMatchup) float32 {
 	return result
 }
 
+func MakeNewGeneration(p Population, t TypeMatchup) []Gene {
+	p.population = SortList(p.population)
+	survivors := p.population[0:10]
+
+	newPop := make([]Gene, 0)
+
+	for range len(survivors) {
+		n1 := rand.Intn(len(survivors))
+		n2 := rand.Intn(len(survivors))
+
+		c1 := Crossover(survivors[n1], survivors[n2])
+		c1.fitness = Fitness(c1, t)
+		newPop = append(newPop, c1)
+	}
+
+	newPop = append(newPop, survivors...)
+
+	return newPop
+}
+
+func Crossover(p1 Gene, p2 Gene) Gene {
+	c1 := p1
+	c2 := p2
+
+	idx := 3
+
+	for i := range p1.gene {
+		if i >= idx {
+			c1.gene[i] = p2.gene[i]
+			c2.gene[i] = p1.gene[i]
+		}
+	}
+	return c1
+}
+
 func VerifyUnique(gene []int) float32 {
 	collision := make(map[int]bool)
 	var multiplier float32 = 1.0
@@ -120,24 +167,36 @@ func VerifyUnique(gene []int) float32 {
 
 func (p *Population) Print() {
 	fmt.Println("Population size:", p.populationSize)
-	for _, g := range p.population {
-		g.Print()
+	for i, g := range p.population {
+		g.Print(i)
 		fmt.Printf("| Fit: %.2f\n", g.fitness)
 	}
 }
 
-func (g *Gene) Print() {
-	fmt.Printf("[")
+func (g *Gene) Print(i int) {
+	fmt.Printf("%d [", i)
 	for _, v := range g.gene {
-		t, err := GetType(v)
+		// t, err := GetType(v)
 
-		if err != nil {
-			panic(err)
-		}
+		// if err != nil {
+		// 	panic(err)
+		// }
 
-		fmt.Printf("%s, \t", t)
+		fmt.Printf("%2d, ", v)
+		// fmt.Printf("%s, \t", t)
 	}
 	fmt.Printf("]")
+}
+
+func (g *Gene) Mutate() {
+	rate := g.mutationRate
+
+	for i := range g.gene {
+		if rand.Float32() < rate {
+			g.gene[i] = rand.Intn(18)
+		}
+	}
+
 }
 
 func MakeGene(size int) Gene {
@@ -148,9 +207,10 @@ func MakeGene(size int) Gene {
 	}
 
 	return Gene{
-		gene:     gene,
-		geneSize: size,
-		fitness:  0,
+		gene:         gene,
+		geneSize:     size,
+		fitness:      0.00,
+		mutationRate: 0.10,
 	}
 }
 func MakePopulation(populationSize int, geneSize int) Population {
@@ -236,4 +296,11 @@ func GetType(Type int) (string, error) {
 
 func (t *TypeMatchup) evaluate(t1 int, t2 int) float32 {
 	return t.table[t1][t2]
+}
+
+func SortList(list []Gene) []Gene {
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].fitness > list[j].fitness
+	})
+	return list
 }
