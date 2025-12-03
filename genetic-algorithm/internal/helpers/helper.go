@@ -2,7 +2,7 @@ package helpers
 
 import (
 	"fmt"
-	"gene-algo/internal/models"
+	"gene-algo/internal/core"
 	"sort"
 )
 
@@ -47,10 +47,9 @@ func GetType(Type int) (string, error) {
 	default:
 		return "", fmt.Errorf("Invalid type")
 	}
-
 }
 
-func SortList(list []models.Gene) []models.Gene {
+func SortList(list []core.Chromossome) []core.Chromossome {
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Fitness > list[j].Fitness
 	})

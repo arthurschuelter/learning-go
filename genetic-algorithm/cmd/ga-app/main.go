@@ -2,28 +2,11 @@ package main
 
 import (
 	"fmt"
+	"gene-algo/internal/core"
 	"gene-algo/internal/helpers"
-	"gene-algo/internal/models"
 	"math/rand"
 	"time"
 )
-
-// type Gene struct {
-// 	gene         []int
-// 	geneSize     int
-// 	fitness      float32
-// 	mutationRate float32
-// }
-
-// type Population struct {
-// 	population     []Gene
-// 	populationSize int
-// 	survivorSize   int
-// }
-
-// type TypeChart struct {
-// 	table [18][18]float32
-// }
 
 const (
 	NORMAL = iota
@@ -54,7 +37,7 @@ func main() {
 	var survivorSize int = 20
 	var mutationRate float32 = 0.08
 
-	best_solution := models.Gene{}
+	best_solution := core.Chromossome{}
 
 	start := time.Now()
 
@@ -87,15 +70,15 @@ func main() {
 	fmt.Println("Execution time:", elapsed)
 }
 
-func UpdateBestSolution(current models.Gene, best *models.Gene) {
+func UpdateBestSolution(current core.Chromossome, best *core.Chromossome) {
 	if current.Fitness > best.Fitness {
 		*best = Clone(current)
 	}
 }
 
-func ShowFinalSolution(g models.Gene, t models.TypeChart) {
+func ShowFinalSolution(g core.Chromossome, t core.TypeChart) {
 	fmt.Println("Final Solution:")
-	for _, value := range g.Gene {
+	for _, value := range g.Chromossome {
 		typeName, err := helpers.GetType(value)
 		if err != nil {
 			panic(err)
@@ -106,17 +89,17 @@ func ShowFinalSolution(g models.Gene, t models.TypeChart) {
 	fmt.Printf("Fitness: %.2f\n", g.Fitness)
 }
 
-func Fitness(g models.Gene, t models.TypeChart) float32 {
+func Fitness(g core.Chromossome, t core.TypeChart) float32 {
 	var sum float32
 	atk := make([]float32, 18)
 	def := make([]float32, 18)
 
-	unique := VerifyUnique(g.Gene)
+	unique := VerifyUnique(g.Chromossome)
 
 	var atkSum float32
 	var defSum float32
 
-	for i, v := range g.Gene {
+	for i, v := range g.Chromossome {
 		atk[i] = t.Evaluate(v, i)
 
 		switch atk[i] {
@@ -146,10 +129,9 @@ func Fitness(g models.Gene, t models.TypeChart) float32 {
 	return result
 }
 
-func MakeNewGeneration(p models.Population, t models.TypeChart) []models.Gene {
-	// p.population = SortList(p.population)
+func MakeNewGeneration(p core.Population, t core.TypeChart) []core.Chromossome {
 	survivors := Selection(p)
-	newPop := make([]models.Gene, 0)
+	newPop := make([]core.Chromossome, 0)
 
 	newSurvivorNum := p.PopulationSize - len(survivors)
 
@@ -175,21 +157,21 @@ func MakeNewGeneration(p models.Population, t models.TypeChart) []models.Gene {
 	return newPop
 }
 
-func Selection(p models.Population) []models.Gene {
+func Selection(p core.Population) []core.Chromossome {
 	// p.population = SortList(p.population)
 	return p.Population[0:p.SurvivorSize]
 }
 
-func Crossover(p1 models.Gene, p2 models.Gene) models.Gene {
+func Crossover(p1 core.Chromossome, p2 core.Chromossome) core.Chromossome {
 	c1 := Clone(p1)
 	c2 := Clone(p2)
 
 	idx := rand.Intn(6)
 
-	for i := range p1.Gene {
+	for i := range p1.Chromossome {
 		if i >= idx {
-			c1.Gene[i] = p2.Gene[i]
-			c2.Gene[i] = p1.Gene[i]
+			c1.Chromossome[i] = p2.Chromossome[i]
+			c2.Chromossome[i] = p1.Chromossome[i]
 		}
 	}
 	return c1
@@ -214,46 +196,46 @@ func VerifyUnique(gene []int) float32 {
 	return multiplier
 }
 
-func MakeGene(size int, mutationRate float32) models.Gene {
+func MakeGene(size int, mutationRate float32) core.Chromossome {
 	gene := make([]int, size)
 
 	for i := range gene {
 		gene[i] = rand.Intn(18)
 	}
 
-	return models.Gene{
-		Gene:         gene,
-		GeneSize:     size,
-		Fitness:      0.00,
-		MutationRate: mutationRate,
+	return core.Chromossome{
+		Chromossome:     gene,
+		ChromossomeSize: size,
+		Fitness:         0.00,
+		MutationRate:    mutationRate,
 	}
 }
 
-func Clone(g1 models.Gene) models.Gene {
-	newGene := make([]int, g1.GeneSize)
-	copy(newGene, g1.Gene)
+func Clone(g1 core.Chromossome) core.Chromossome {
+	newGene := make([]int, g1.ChromossomeSize)
+	copy(newGene, g1.Chromossome)
 
-	return models.Gene{
-		Gene:         newGene,
-		GeneSize:     g1.GeneSize,
-		Fitness:      g1.Fitness,
-		MutationRate: g1.MutationRate,
+	return core.Chromossome{
+		Chromossome:     newGene,
+		ChromossomeSize: g1.ChromossomeSize,
+		Fitness:         g1.Fitness,
+		MutationRate:    g1.MutationRate,
 	}
 }
 
-func MakePopulation(populationSize int, geneSize int, survivorSize int, mutationRate float32) models.Population {
-	population := make([]models.Gene, populationSize)
+func MakePopulation(populationSize int, geneSize int, survivorSize int, mutationRate float32) core.Population {
+	population := make([]core.Chromossome, populationSize)
 	for i := range population {
 		population[i] = MakeGene(geneSize, mutationRate)
 	}
-	return models.Population{
+	return core.Population{
 		Population:     population,
 		PopulationSize: populationSize,
 		SurvivorSize:   survivorSize,
 	}
 }
 
-func MakeTypeChart() models.TypeChart {
+func MakeTypeChart() core.TypeChart {
 	matchupChart := [18][18]float32{
 		NORMAL:   {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 1.0},
 		FIRE:     {1.0, 0.5, 0.5, 1.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 0.5, 1.0, 2.0, 1.0},
@@ -274,7 +256,7 @@ func MakeTypeChart() models.TypeChart {
 		STEEL:    {1.0, 0.5, 0.5, 0.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 0.5, 2.0},
 		FAIRY:    {1.0, 0.5, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.5, 1.0},
 	}
-	return models.TypeChart{
+	return core.TypeChart{
 		Table: matchupChart,
 	}
 }
