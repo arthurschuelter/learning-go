@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"time"
 )
 
 type Gene struct {
@@ -16,6 +17,7 @@ type Gene struct {
 type Population struct {
 	population     []Gene
 	populationSize int
+	survivorSize   int
 }
 
 type TypeMatchup struct {
@@ -46,11 +48,15 @@ const (
 func main() {
 	fmt.Println("Genetic Algorithm")
 	var geneSize int = 6
-	var populationSize int = 20
-	var generations int = 20
+	var populationSize int = 300
+	var generations int = 1000
+	var survivorSize int = 20
+	var mutationRate float32 = 0.08
+
+	start := time.Now()
 
 	typeChart := MakeTypeMatchup()
-	p := MakePopulation(populationSize, geneSize)
+	p := MakePopulation(populationSize, geneSize, survivorSize, mutationRate)
 
 	for j := range generations {
 		fmt.Printf(" === Generation %d === \n", j)
@@ -60,15 +66,30 @@ func main() {
 			gene.fitness = Fitness(*gene, typeChart)
 		}
 
-		p.Print()
-		for i := range p.population {
-			gene := &p.population[i]
-			gene.Mutate()
-		}
+		// p.Print()
 		p.population = MakeNewGeneration(p, typeChart)
 		// p.population = SortList(p.population)
 	}
 
+	elapsed := time.Since(start)
+	p.population = SortList(p.population)
+	p.Print()
+	ShowFinalSolution(p.population[0], typeChart)
+	fmt.Println("Execution time:", elapsed)
+
+}
+
+func ShowFinalSolution(g Gene, t TypeMatchup) {
+	fmt.Println("Final Solution:")
+	for _, value := range g.gene {
+		typeName, err := GetType(value)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Print(typeName + " ")
+	}
+	fmt.Println()
+	fmt.Printf("Fitness: %.2f\n", g.fitness)
 }
 
 func Fitness(g Gene, t TypeMatchup) float32 {
@@ -112,12 +133,13 @@ func Fitness(g Gene, t TypeMatchup) float32 {
 }
 
 func MakeNewGeneration(p Population, t TypeMatchup) []Gene {
-	p.population = SortList(p.population)
-	survivors := p.population[0:10]
-
+	// p.population = SortList(p.population)
+	survivors := Selection(p)
 	newPop := make([]Gene, 0)
 
-	for range len(survivors) {
+	newSurvivorNum := p.populationSize - len(survivors)
+
+	for range newSurvivorNum {
 		n1 := rand.Intn(len(survivors))
 		n2 := rand.Intn(len(survivors))
 
@@ -128,14 +150,27 @@ func MakeNewGeneration(p Population, t TypeMatchup) []Gene {
 
 	newPop = append(newPop, survivors...)
 
+	for i := range newPop {
+		// newPop[i].Print(i)
+		// fmt.Println()
+		newPop[i].Mutate()
+		// newPop[i].Print(i)
+		// fmt.Println()
+	}
+
 	return newPop
 }
 
-func Crossover(p1 Gene, p2 Gene) Gene {
-	c1 := p1
-	c2 := p2
+func Selection(p Population) []Gene {
+	p.population = SortList(p.population)
+	return p.population[0:p.survivorSize]
+}
 
-	idx := 3
+func Crossover(p1 Gene, p2 Gene) Gene {
+	c1 := Clone(p1)
+	c2 := Clone(p2)
+
+	idx := rand.Intn(6)
 
 	for i := range p1.gene {
 		if i >= idx {
@@ -174,7 +209,7 @@ func (p *Population) Print() {
 }
 
 func (g *Gene) Print(i int) {
-	fmt.Printf("%d [", i)
+	fmt.Printf("%2d [", i)
 	for _, v := range g.gene {
 		// t, err := GetType(v)
 
@@ -192,14 +227,16 @@ func (g *Gene) Mutate() {
 	rate := g.mutationRate
 
 	for i := range g.gene {
-		if rand.Float32() < rate {
+		chance := rand.Float32()
+		if chance < rate {
+			// fmt.Print(i, " Mutei ", g.gene[i], " -> ")
 			g.gene[i] = rand.Intn(18)
+			// fmt.Println(g.gene[i])
 		}
 	}
-
 }
 
-func MakeGene(size int) Gene {
+func MakeGene(size int, mutationRate float32) Gene {
 	gene := make([]int, size)
 
 	for i := range gene {
@@ -210,17 +247,31 @@ func MakeGene(size int) Gene {
 		gene:         gene,
 		geneSize:     size,
 		fitness:      0.00,
-		mutationRate: 0.10,
+		mutationRate: mutationRate,
 	}
 }
-func MakePopulation(populationSize int, geneSize int) Population {
+
+func Clone(g1 Gene) Gene {
+	newGene := make([]int, g1.geneSize)
+	copy(newGene, g1.gene)
+
+	return Gene{
+		gene:         newGene,
+		geneSize:     g1.geneSize,
+		fitness:      g1.fitness,
+		mutationRate: g1.mutationRate,
+	}
+}
+
+func MakePopulation(populationSize int, geneSize int, survivorSize int, mutationRate float32) Population {
 	population := make([]Gene, populationSize)
 	for i := range population {
-		population[i] = MakeGene(geneSize)
+		population[i] = MakeGene(geneSize, mutationRate)
 	}
 	return Population{
 		population:     population,
 		populationSize: populationSize,
+		survivorSize:   survivorSize,
 	}
 }
 
