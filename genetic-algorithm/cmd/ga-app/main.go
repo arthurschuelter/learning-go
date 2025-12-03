@@ -2,27 +2,28 @@ package main
 
 import (
 	"fmt"
+	"gene-algo/internal/helpers"
+	"gene-algo/internal/models"
 	"math/rand"
-	"sort"
 	"time"
 )
 
-type Gene struct {
-	gene         []int
-	geneSize     int
-	fitness      float32
-	mutationRate float32
-}
+// type Gene struct {
+// 	gene         []int
+// 	geneSize     int
+// 	fitness      float32
+// 	mutationRate float32
+// }
 
-type Population struct {
-	population     []Gene
-	populationSize int
-	survivorSize   int
-}
+// type Population struct {
+// 	population     []Gene
+// 	populationSize int
+// 	survivorSize   int
+// }
 
-type TypeMatchup struct {
-	table [18][18]float32
-}
+// type TypeChart struct {
+// 	table [18][18]float32
+// }
 
 const (
 	NORMAL = iota
@@ -48,62 +49,75 @@ const (
 func main() {
 	fmt.Println("Genetic Algorithm")
 	var geneSize int = 6
-	var populationSize int = 300
+	var populationSize int = 500
 	var generations int = 1000
 	var survivorSize int = 20
 	var mutationRate float32 = 0.08
 
+	best_solution := models.Gene{}
+
 	start := time.Now()
 
-	typeChart := MakeTypeMatchup()
+	typeChart := MakeTypeChart()
 	p := MakePopulation(populationSize, geneSize, survivorSize, mutationRate)
 
 	for j := range generations {
-		fmt.Printf(" === Generation %d === \n", j)
+		// fmt.Printf(" === Generation %d === \n", j)
 
-		for i := range p.population {
-			gene := &p.population[i]
-			gene.fitness = Fitness(*gene, typeChart)
+		for i := range p.Population {
+			gene := &p.Population[i]
+			gene.Fitness = Fitness(*gene, typeChart)
 		}
 
-		// p.Print()
-		p.population = MakeNewGeneration(p, typeChart)
-		// p.population = SortList(p.population)
+		p.Population = helpers.SortList(p.Population)
+		UpdateBestSolution(p.Population[0], &best_solution)
+
+		if j+1 == generations {
+			break
+		}
+
+		p.Population = MakeNewGeneration(p, typeChart)
 	}
 
 	elapsed := time.Since(start)
-	p.population = SortList(p.population)
+	p.Population = helpers.SortList(p.Population)
 	p.Print()
-	ShowFinalSolution(p.population[0], typeChart)
+	ShowFinalSolution(best_solution, typeChart)
+	Fitness(best_solution, typeChart)
 	fmt.Println("Execution time:", elapsed)
-
 }
 
-func ShowFinalSolution(g Gene, t TypeMatchup) {
+func UpdateBestSolution(current models.Gene, best *models.Gene) {
+	if current.Fitness > best.Fitness {
+		*best = Clone(current)
+	}
+}
+
+func ShowFinalSolution(g models.Gene, t models.TypeChart) {
 	fmt.Println("Final Solution:")
-	for _, value := range g.gene {
-		typeName, err := GetType(value)
+	for _, value := range g.Gene {
+		typeName, err := helpers.GetType(value)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Print(typeName + " ")
 	}
 	fmt.Println()
-	fmt.Printf("Fitness: %.2f\n", g.fitness)
+	fmt.Printf("Fitness: %.2f\n", g.Fitness)
 }
 
-func Fitness(g Gene, t TypeMatchup) float32 {
+func Fitness(g models.Gene, t models.TypeChart) float32 {
 	var sum float32
 	atk := make([]float32, 18)
 	def := make([]float32, 18)
 
-	unique := VerifyUnique(g.gene)
+	unique := VerifyUnique(g.Gene)
 
 	var atkSum float32
 	var defSum float32
 
-	for i, v := range g.gene {
-		atk[i] = t.evaluate(v, i)
+	for i, v := range g.Gene {
+		atk[i] = t.Evaluate(v, i)
 
 		switch atk[i] {
 		case 0.5:
@@ -114,7 +128,7 @@ func Fitness(g Gene, t TypeMatchup) float32 {
 
 		atkSum += atk[i]
 
-		def[i] = t.evaluate(i, v)
+		def[i] = t.Evaluate(i, v)
 
 		switch def[i] {
 		case 0.5:
@@ -132,19 +146,19 @@ func Fitness(g Gene, t TypeMatchup) float32 {
 	return result
 }
 
-func MakeNewGeneration(p Population, t TypeMatchup) []Gene {
+func MakeNewGeneration(p models.Population, t models.TypeChart) []models.Gene {
 	// p.population = SortList(p.population)
 	survivors := Selection(p)
-	newPop := make([]Gene, 0)
+	newPop := make([]models.Gene, 0)
 
-	newSurvivorNum := p.populationSize - len(survivors)
+	newSurvivorNum := p.PopulationSize - len(survivors)
 
 	for range newSurvivorNum {
 		n1 := rand.Intn(len(survivors))
 		n2 := rand.Intn(len(survivors))
 
 		c1 := Crossover(survivors[n1], survivors[n2])
-		c1.fitness = Fitness(c1, t)
+		c1.Fitness = Fitness(c1, t)
 		newPop = append(newPop, c1)
 	}
 
@@ -161,21 +175,21 @@ func MakeNewGeneration(p Population, t TypeMatchup) []Gene {
 	return newPop
 }
 
-func Selection(p Population) []Gene {
-	p.population = SortList(p.population)
-	return p.population[0:p.survivorSize]
+func Selection(p models.Population) []models.Gene {
+	// p.population = SortList(p.population)
+	return p.Population[0:p.SurvivorSize]
 }
 
-func Crossover(p1 Gene, p2 Gene) Gene {
+func Crossover(p1 models.Gene, p2 models.Gene) models.Gene {
 	c1 := Clone(p1)
 	c2 := Clone(p2)
 
 	idx := rand.Intn(6)
 
-	for i := range p1.gene {
+	for i := range p1.Gene {
 		if i >= idx {
-			c1.gene[i] = p2.gene[i]
-			c2.gene[i] = p1.gene[i]
+			c1.Gene[i] = p2.Gene[i]
+			c2.Gene[i] = p1.Gene[i]
 		}
 	}
 	return c1
@@ -200,82 +214,46 @@ func VerifyUnique(gene []int) float32 {
 	return multiplier
 }
 
-func (p *Population) Print() {
-	fmt.Println("Population size:", p.populationSize)
-	for i, g := range p.population {
-		g.Print(i)
-		fmt.Printf("| Fit: %.2f\n", g.fitness)
-	}
-}
-
-func (g *Gene) Print(i int) {
-	fmt.Printf("%2d [", i)
-	for _, v := range g.gene {
-		// t, err := GetType(v)
-
-		// if err != nil {
-		// 	panic(err)
-		// }
-
-		fmt.Printf("%2d, ", v)
-		// fmt.Printf("%s, \t", t)
-	}
-	fmt.Printf("]")
-}
-
-func (g *Gene) Mutate() {
-	rate := g.mutationRate
-
-	for i := range g.gene {
-		chance := rand.Float32()
-		if chance < rate {
-			// fmt.Print(i, " Mutei ", g.gene[i], " -> ")
-			g.gene[i] = rand.Intn(18)
-			// fmt.Println(g.gene[i])
-		}
-	}
-}
-
-func MakeGene(size int, mutationRate float32) Gene {
+func MakeGene(size int, mutationRate float32) models.Gene {
 	gene := make([]int, size)
 
 	for i := range gene {
 		gene[i] = rand.Intn(18)
 	}
 
-	return Gene{
-		gene:         gene,
-		geneSize:     size,
-		fitness:      0.00,
-		mutationRate: mutationRate,
+	return models.Gene{
+		Gene:         gene,
+		GeneSize:     size,
+		Fitness:      0.00,
+		MutationRate: mutationRate,
 	}
 }
 
-func Clone(g1 Gene) Gene {
-	newGene := make([]int, g1.geneSize)
-	copy(newGene, g1.gene)
+func Clone(g1 models.Gene) models.Gene {
+	newGene := make([]int, g1.GeneSize)
+	copy(newGene, g1.Gene)
 
-	return Gene{
-		gene:         newGene,
-		geneSize:     g1.geneSize,
-		fitness:      g1.fitness,
-		mutationRate: g1.mutationRate,
+	return models.Gene{
+		Gene:         newGene,
+		GeneSize:     g1.GeneSize,
+		Fitness:      g1.Fitness,
+		MutationRate: g1.MutationRate,
 	}
 }
 
-func MakePopulation(populationSize int, geneSize int, survivorSize int, mutationRate float32) Population {
-	population := make([]Gene, populationSize)
+func MakePopulation(populationSize int, geneSize int, survivorSize int, mutationRate float32) models.Population {
+	population := make([]models.Gene, populationSize)
 	for i := range population {
 		population[i] = MakeGene(geneSize, mutationRate)
 	}
-	return Population{
-		population:     population,
-		populationSize: populationSize,
-		survivorSize:   survivorSize,
+	return models.Population{
+		Population:     population,
+		PopulationSize: populationSize,
+		SurvivorSize:   survivorSize,
 	}
 }
 
-func MakeTypeMatchup() TypeMatchup {
+func MakeTypeChart() models.TypeChart {
 	matchupChart := [18][18]float32{
 		NORMAL:   {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 1.0},
 		FIRE:     {1.0, 0.5, 0.5, 1.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 0.5, 1.0, 2.0, 1.0},
@@ -296,62 +274,7 @@ func MakeTypeMatchup() TypeMatchup {
 		STEEL:    {1.0, 0.5, 0.5, 0.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 0.5, 2.0},
 		FAIRY:    {1.0, 0.5, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.5, 1.0},
 	}
-	return TypeMatchup{
-		table: matchupChart,
+	return models.TypeChart{
+		Table: matchupChart,
 	}
-}
-
-func GetType(Type int) (string, error) {
-	switch Type {
-	case 0:
-		return "NORMAL", nil
-	case 1:
-		return "FIRE", nil
-	case 2:
-		return "WATER", nil
-	case 3:
-		return "ELECTRIC", nil
-	case 4:
-		return "GRASS", nil
-	case 5:
-		return "ICE", nil
-	case 6:
-		return "FIGHTING", nil
-	case 7:
-		return "POISON", nil
-	case 8:
-		return "GROUND", nil
-	case 9:
-		return "FLYING", nil
-	case 10:
-		return "PSYCHIC", nil
-	case 11:
-		return "BUG", nil
-	case 12:
-		return "ROCK", nil
-	case 13:
-		return "GHOST", nil
-	case 14:
-		return "DRAGON", nil
-	case 15:
-		return "DARK", nil
-	case 16:
-		return "STEEL", nil
-	case 17:
-		return "FAIRY", nil
-	default:
-		return "", fmt.Errorf("Invalid type")
-	}
-
-}
-
-func (t *TypeMatchup) evaluate(t1 int, t2 int) float32 {
-	return t.table[t1][t2]
-}
-
-func SortList(list []Gene) []Gene {
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].fitness > list[j].fitness
-	})
-	return list
 }
