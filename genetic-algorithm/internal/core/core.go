@@ -30,14 +30,6 @@ type Population struct {
 	SurvivorSize   int
 }
 
-type TypeChart struct {
-	Table [18][18]float32
-}
-
-func (t *TypeChart) Evaluate(t1 int, t2 int) float32 {
-	return t.Table[t1][t2]
-}
-
 func (p *Population) Print() {
 	fmt.Println("Population size:", p.PopulationSize)
 	for i, g := range p.Population {

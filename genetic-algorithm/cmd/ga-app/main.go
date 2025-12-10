@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gene-algo/internal/core"
 	"gene-algo/internal/helpers"
+	"gene-algo/pkg/pokemon"
 	"math/rand"
 	"time"
 )
@@ -41,7 +42,7 @@ func main() {
 
 	start := time.Now()
 
-	typeChart := MakeTypeChart()
+	typeChart := pokemon.MakeTypeChart()
 	p := MakePopulation(populationSize, geneSize, survivorSize, mutationRate)
 
 	for j := range generations {
@@ -49,7 +50,7 @@ func main() {
 
 		for i := range p.Population {
 			gene := &p.Population[i]
-			gene.Fitness = Fitness(*gene, typeChart)
+			gene.Fitness = pokemon.CalculateFitness(*gene, typeChart, false)
 		}
 
 		p.Population = helpers.SortList(p.Population)
@@ -66,7 +67,7 @@ func main() {
 	p.Population = helpers.SortList(p.Population)
 	p.Print()
 	ShowFinalSolution(best_solution, typeChart)
-	Fitness(best_solution, typeChart)
+	pokemon.CalculateFitness(best_solution, typeChart, true)
 	fmt.Println("Execution time:", elapsed)
 }
 
@@ -76,7 +77,7 @@ func UpdateBestSolution(current core.Chromossome, best *core.Chromossome) {
 	}
 }
 
-func ShowFinalSolution(g core.Chromossome, t core.TypeChart) {
+func ShowFinalSolution(g core.Chromossome, t pokemon.TypeChart) {
 	fmt.Println("Final Solution:")
 	for _, value := range g.Chromossome {
 		typeName, err := helpers.GetType(value)
@@ -89,7 +90,7 @@ func ShowFinalSolution(g core.Chromossome, t core.TypeChart) {
 	fmt.Printf("Fitness: %.2f\n", g.Fitness)
 }
 
-func Fitness(g core.Chromossome, t core.TypeChart) float32 {
+func Fitness(g core.Chromossome, t pokemon.TypeChart) float32 {
 	var sum float32
 	atk := make([]float32, 18)
 	def := make([]float32, 18)
@@ -129,7 +130,7 @@ func Fitness(g core.Chromossome, t core.TypeChart) float32 {
 	return result
 }
 
-func MakeNewGeneration(p core.Population, t core.TypeChart) []core.Chromossome {
+func MakeNewGeneration(p core.Population, t pokemon.TypeChart) []core.Chromossome {
 	survivors := Selection(p)
 	newPop := make([]core.Chromossome, 0)
 
@@ -140,7 +141,7 @@ func MakeNewGeneration(p core.Population, t core.TypeChart) []core.Chromossome {
 		n2 := rand.Intn(len(survivors))
 
 		c1 := Crossover(survivors[n1], survivors[n2])
-		c1.Fitness = Fitness(c1, t)
+		c1.Fitness = pokemon.CalculateFitness(c1, t, false)
 		newPop = append(newPop, c1)
 	}
 
@@ -232,31 +233,5 @@ func MakePopulation(populationSize int, geneSize int, survivorSize int, mutation
 		Population:     population,
 		PopulationSize: populationSize,
 		SurvivorSize:   survivorSize,
-	}
-}
-
-func MakeTypeChart() core.TypeChart {
-	matchupChart := [18][18]float32{
-		NORMAL:   {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 0.0, 1.0, 1.0, 0.5, 1.0},
-		FIRE:     {1.0, 0.5, 0.5, 1.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 0.5, 1.0, 2.0, 1.0},
-		WATER:    {1.0, 2.0, 0.5, 1.0, 0.5, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 2.0, 1.0, 0.5, 1.0, 1.0, 1.0},
-		ELECTRIC: {1.0, 1.0, 2.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.0, 2.0, 1.0, 1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0},
-		GRASS:    {1.0, 0.5, 2.0, 1.0, 0.5, 1.0, 1.0, 0.5, 2.0, 0.5, 1.0, 0.5, 2.0, 1.0, 0.5, 1.0, 0.5, 1.0},
-		ICE:      {1.0, 0.5, 0.5, 1.0, 2.0, 0.5, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 0.5, 1.0},
-		FIGHTING: {2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 0.5, 1.0, 0.5, 0.5, 0.5, 2.0, 0.0, 1.0, 2.0, 2.0, 0.5},
-		POISON:   {1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.5, 0.5, 1.0, 1.0, 0.0, 2.0},
-		GROUND:   {1.0, 2.0, 1.0, 2.0, 0.5, 1.0, 1.0, 2.0, 1.0, 0.0, 1.0, 0.5, 2.0, 1.0, 1.0, 1.0, 2.0, 1.0},
-		FLYING:   {1.0, 1.0, 1.0, 0.5, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 1.0, 1.0, 0.5, 1.0},
-		PSYCHIC:  {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0, 1.0, 0.0, 0.5, 1.0},
-		BUG:      {1.0, 0.5, 1.0, 1.0, 2.0, 1.0, 0.5, 0.5, 1.0, 0.5, 2.0, 1.0, 1.0, 0.5, 1.0, 2.0, 0.5, 0.5},
-		ROCK:     {1.0, 2.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 0.5, 2.0, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 0.5, 1.0},
-		GHOST:    {0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 0.5, 1.0, 1.0},
-		DRAGON:   {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 0.5, 0.0},
-		DARK:     {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 2.0, 1.0, 0.5, 1.0, 0.5},
-		STEEL:    {1.0, 0.5, 0.5, 0.5, 1.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 1.0, 0.5, 2.0},
-		FAIRY:    {1.0, 0.5, 1.0, 1.0, 1.0, 1.0, 2.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 0.5, 1.0},
-	}
-	return core.TypeChart{
-		Table: matchupChart,
 	}
 }
