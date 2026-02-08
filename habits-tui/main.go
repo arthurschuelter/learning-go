@@ -44,43 +44,31 @@ func main() {
 
 		if command == "1" {
 			fmt.Println("Fetching habits...")
-			fmt.Println("")
 			habits := GetHabits()
 			printFetchHabits(habits)
 		}
 
 		if command == "2" {
-			var habitChoice int
-			clear()
-			fmt.Println("=======================")
-			PrintHabitsOptions(habits)
-			fmt.Print("Enter command: ")
-			_, err := fmt.Scan(&habitChoice)
-			if err != nil {
-				fmt.Print(err.Error())
-				os.Exit(1)
-			}
-			// fmt.Printf("You chose habit: %s\n", habits[habitChoice-1].Name)
-			currentTime := time.Now()
-			var requestBody = EntryRequest{
-				HabitId:   habits[habitChoice-1].Id,
-				EntryDate: currentTime.Format("2006-01-02"),
-			}
-			PostHabitEntry(requestBody)
+			HabitEntryOptionsMenu(habits)
 		}
 
-		if command == "3" {
+		if command == "4" {
 			fmt.Println("Bye bye")
 			return
 		}
 
+		if command == "5" {
+			PrintLastNDays(10)
+		}
+
 	}
 }
+
 func PrintMenu() {
 	fmt.Println("=======================")
 	fmt.Println("(1) Fetch habits")
 	fmt.Println("(2) Add habit entry")
-	fmt.Println("(3) Exit")
+	fmt.Println("(4) Exit")
 	fmt.Print("Enter command: ")
 }
 
@@ -131,6 +119,44 @@ func PrintHabitsOptions(habits []Habit) {
 	}
 }
 
+func HabitEntryOptionsMenu(habits []Habit) {
+	var habitChoice int
+	clear()
+	fmt.Println("=======================")
+	PrintHabitsOptions(habits)
+	fmt.Print("Enter command: ")
+	_, err := fmt.Scan(&habitChoice)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	if habitChoice < 1 || habitChoice > len(habits) {
+		fmt.Println("Returning to main menu...")
+		return
+	}
+
+	var entryDate string
+	fmt.Print("Enter date (YYYY-MM-DD) or press Enter for today: ")
+
+	_, err = fmt.Scan(&entryDate)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+
+	_, err = time.Parse("2006-01-02", entryDate)
+	if err != nil {
+		fmt.Println("Invalid date:", entryDate)
+		return
+	}
+
+	var requestBody = EntryRequest{
+		HabitId:   habits[habitChoice-1].Id,
+		EntryDate: entryDate,
+	}
+	PostHabitEntry(requestBody)
+}
+
 func printFetchHabits(habits []Habit) {
 	clear()
 	for _, habit := range habits {
@@ -144,8 +170,19 @@ func printFetchHabits(habits []Habit) {
 		fmt.Println("")
 	}
 }
+
+func PrintLastNDays(n int) {
+	clear()
+	fmt.Printf("Last %d days:\n", n)
+	for i := 0; i < n; i++ {
+		date := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		fmt.Println(date)
+	}
+}
+
 func clear() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
+	cmd.Run()
 	cmd.Run()
 }
