@@ -28,11 +28,13 @@ type HabitStreak struct {
 type HabitEntry struct {
 	EntryDate string `json:"entry_date"`
 	HabitId   string `json:"habit_id"`
+	Duration  int    `json:"duration"`
 }
 
 type EntryRequest struct {
 	HabitId   string `json:"habit_id"`
 	EntryDate string `json:"entry_date"`
+	Duration  int    `json:"duration"`
 }
 
 func main() {
@@ -151,10 +153,20 @@ func HabitEntryOptionsMenu(habits []Habit) {
 		return
 	}
 
+	var duration int
+	fmt.Print("Enter duration in minutes: ")
+	_, err = fmt.Scan(&duration)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+
 	var requestBody = EntryRequest{
 		HabitId:   habits[habitChoice-1].Id,
 		EntryDate: entryDate,
+		Duration:  duration,
 	}
+
 	PostHabitEntry(requestBody)
 }
 
@@ -167,6 +179,7 @@ func printFetchHabits(habits []Habit) {
 		fmt.Printf("Streak: %d\n", habit.Streak)
 		fmt.Println("Entries (last 30 days):")
 		PrintStreak(habit)
+		PrintTotalDuration(habit)
 		fmt.Println("")
 	}
 }
@@ -199,6 +212,14 @@ func PrintStreak(habit Habit) {
 		}
 	}
 	fmt.Println("")
+}
+
+func PrintTotalDuration(habit Habit) {
+	totalDuration := 0.0
+	for _, entry := range habit.Entries {
+		totalDuration += float64(entry.Duration)
+	}
+	fmt.Printf("Total duration: %.2f hours\n", totalDuration/60.0)
 }
 
 func CompareDates(date1 string, date2 string) bool {
