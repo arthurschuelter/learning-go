@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"slices"
 	"time"
 )
 
@@ -17,6 +18,11 @@ type Habit struct {
 	Description string       `json:"description"`
 	Entries     []HabitEntry `json:"entries"`
 	Streak      int          `json:"streak"`
+}
+
+type HabitStreak struct {
+	HabitEntryDate string
+	IsActive       bool
 }
 
 type HabitEntry struct {
@@ -33,34 +39,29 @@ func main() {
 	habits := GetHabits()
 	for {
 
-		var command string
+		var command int
 		PrintMenu()
 
 		_, err := fmt.Scan(&command)
 		if err != nil {
-			fmt.Print(err.Error())
-			os.Exit(1)
+			fmt.Println("Bye bye")
+			return
 		}
 
-		if command == "1" {
+		if command == 1 {
 			fmt.Println("Fetching habits...")
 			habits := GetHabits()
 			printFetchHabits(habits)
 		}
 
-		if command == "2" {
+		if command == 2 {
 			HabitEntryOptionsMenu(habits)
 		}
 
-		if command == "4" {
+		if command >= 4 {
 			fmt.Println("Bye bye")
 			return
 		}
-
-		if command == "5" {
-			PrintLastNDays(10)
-		}
-
 	}
 }
 
@@ -159,30 +160,65 @@ func HabitEntryOptionsMenu(habits []Habit) {
 
 func printFetchHabits(habits []Habit) {
 	clear()
+	clear()
 	for _, habit := range habits {
 		fmt.Printf("%s (%s)\n", habit.Name, habit.Id)
 		fmt.Printf("Description: %s\n", habit.Description)
 		fmt.Printf("Streak: %d\n", habit.Streak)
-		fmt.Println("Entries:")
-		for _, entry := range habit.Entries {
-			fmt.Printf("  %s\n", entry.EntryDate)
-		}
+		fmt.Println("Entries (last 30 days):")
+		PrintStreak(habit)
 		fmt.Println("")
 	}
 }
 
-func PrintLastNDays(n int) {
-	clear()
-	fmt.Printf("Last %d days:\n", n)
+func PrintStreak(habit Habit) {
+	n := 30
+	var habitStreak []HabitStreak
 	for i := 0; i < n; i++ {
 		date := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
-		fmt.Println(date)
+		habitStreak = append(habitStreak, HabitStreak{
+			HabitEntryDate: date,
+			IsActive:       false,
+		})
 	}
+	entries := habit.Entries
+	for i := 0; i < n; i++ {
+		for _, entry := range entries {
+			if CompareDates(habitStreak[i].HabitEntryDate, entry.EntryDate) {
+				habitStreak[i].IsActive = true
+			}
+		}
+	}
+	// fmt.Println(habitStreak)
+	slices.Reverse(habitStreak)
+	for i := 0; i < len(habitStreak); i++ {
+		if habitStreak[i].IsActive {
+			fmt.Print("■ ")
+		} else {
+			fmt.Print("□ ")
+		}
+	}
+	fmt.Println("")
+}
+
+func CompareDates(date1 string, date2 string) bool {
+	layout := "2006-01-02"
+	t1, err := time.Parse(layout, date1)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	layout2 := "2006-01-02T15:04:05"
+	t2, err := time.Parse(layout2, date2)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	return t1.Equal(t2)
 }
 
 func clear() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
-	cmd.Run()
 	cmd.Run()
 }

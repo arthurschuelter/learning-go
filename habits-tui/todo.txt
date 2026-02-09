@@ -1,4 +1,4 @@
 [ ] Change description
 [x] Add date to habit
 [ ] Add time spent
-[ ] Better streak visualization
+[x] Better streak visualization
