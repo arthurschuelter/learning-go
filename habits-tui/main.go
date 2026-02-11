@@ -141,11 +141,12 @@ func HabitEntryOptionsMenu(habits []Habit) {
 	var entryDate string
 	fmt.Print("Enter date (YYYY-MM-DD) or press Enter for today: ")
 
-	_, err = fmt.Scan(&entryDate)
-	if err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
+	_, err = fmt.Scanln(&entryDate)
+	if err != nil || entryDate == "" {
+		entryDate = time.Now().Format("2006-01-02")
 	}
+
+	fmt.Println("Entry date:", entryDate)
 
 	_, err = time.Parse("2006-01-02", entryDate)
 	if err != nil {
@@ -154,11 +155,10 @@ func HabitEntryOptionsMenu(habits []Habit) {
 	}
 
 	var duration int
-	fmt.Print("Enter duration in minutes: ")
-	_, err = fmt.Scan(&duration)
-	if err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
+	fmt.Print("Enter duration in minutes (or Press Enter for 15 minutes): ")
+	_, err = fmt.Scanln(&duration)
+	if err != nil || duration == 0 {
+		duration = 15
 	}
 
 	var requestBody = EntryRequest{
